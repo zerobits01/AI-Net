@@ -2,6 +2,10 @@
 
 I got the basic idea at internship period, at PayamPardaz Co.
 
+I am trying to start implementing my dream about the most secure network based on SDx and AI solutions.
+
+
+
 # FrameWork & Material
 
 I gonna use Onos controller as base controller for managing the SDN demands
