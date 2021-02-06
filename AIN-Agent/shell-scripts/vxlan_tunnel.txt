@@ -1,0 +1,21 @@
+set int state GigabitEthernet2/1/0 up
+set int ip addr GigabitEthernet2/1/0 172.16.44.132/24
+
+
+create bridge-domain 13 learn 1 forward 1 uu-flood 1 flood 1 arp-term 0
+
+
+loopback create mac 00:11:22:33:44:22
+set int state loop0 up
+set int ip addr loop0 10.101.0.6/24
+
+
+create vxlan tunnel src 172.16.44.132 dst 172.16.54.128 vni 13
+
+
+set int state vxlan_tunnel0 up
+set int l2 bridge loop0 13 bvi
+set int l2 bridge vxlan_tunnel0 13 1
+
+
+ip route add 172.16.54.0/24 via 172.16.44.167
