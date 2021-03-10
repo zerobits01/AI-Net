@@ -1,0 +1,24 @@
+#!/bin/bash
+
+###################################################################################
+# author: zerobits01
+# date:   2/16/2021
+# purpose:installing vpp and routing modules from source
+# ref:
+#  https://haryachyy.wordpress.com/2020/04/17/learning-vpp-ospf-routing-protocol/
+###################################################################################
+
+git clone https://github.com/garyachy/frr-vpp.git
+
+cd frr-vpp
+
+sudo apt install debhelper dkms libnuma-dev ninja-build
+sudo apt install python-dev python3-dev
+sudo apt install python3-virtualenv
+sudo apt install python3-pip
+
+
+./build_vpp.sh
+
+# done
+

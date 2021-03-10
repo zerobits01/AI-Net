@@ -14,17 +14,13 @@ Also i will create my own manager to work as orchestrator to handle SDN and SDWa
 
 The manager will have an AI Core for analysing the traffic and handling some Security Risks
 
-### i wanna use these technologies:
-- jenkins
-- docker
-- ansible
-- python
-- Django/Flask
-- C/Cpp
-- gRPC
-- REST-API
-- WebSocket
-- nginx/gunicorn
+## technologies:
+
+I wanna use python(ansible) and jenkins for most of the project automation and maybe CI/CD.
+Also most of the controller project gonna be handle with gRPC technolgy specially the AI-Core.
+Also we may need use web-sockets and REST-API for controlling the edge-servers and interacting with the sdn controllers.
+
+I may use other techs like redis and etc  base on demand.
 
 # TODO:
 

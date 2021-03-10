@@ -1,0 +1,15 @@
+create bridge-domain 12 learn 0 forward 1 flood 1 uu-flood 1 arp-term 1
+create vxlan tunnel dst 20.20.20.20 src 30.30.30.30 vni 12
+loopback create mac 00:11:22:33:44:22
+set int l2 learn loop0 disable
+set bridge-domain arp entry 12 10.100.0.6 00:11:22:33:44:11
+set int state loop0 up
+set int ip addr loop0 10.100.0.7/31
+create tap host-ip4-addr 30.30.30.1/24 host-if-name vxlan-out id 101
+set int state tap101 up
+set int ip addr tap101 30.30.30.30/24
+set int l2 bridge loop0 12 bvi
+set int l2 bridge vxlan_tunnel0 12 1
+ip route add 172.16.0.0/16 via 30.30.30.1
+ip route 30.30.30.0/24 via 30.30.30.1
+

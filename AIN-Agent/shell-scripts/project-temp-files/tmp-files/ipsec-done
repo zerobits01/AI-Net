@@ -1,0 +1,52 @@
+################################################ 1 ################################################
+
+loopback create mac 00:11:22:33:44:11
+
+set int state loop0 up
+set int ip address loop0 11.11.11.10/31
+
+
+set interface state GigabitEthernet0/3/0 up
+set interface ip address GigabitEthernet0/3/0 172.16.54.129/24
+
+ipsec sa add 10 spi 1000 esp crypto-key 4a506a794f574265564551694d653768 crypto-alg aes-cbc-128 integ-key 4a506a794f574265564551694d653768 integ-alg sha1-96 
+
+ipsec sa add 20 spi 1001 esp crypto-key 4a506a794f574265564551694d653768 crypto-alg aes-cbc-128 integ-key 4a506a794f574265564551694d653768 integ-alg sha1-96 
+
+
+create ipsec tunnel local-ip 172.16.54.129 local-spi 10 remote-ip 172.16.55.129 remote-spi 20
+
+create bridge-domain 12 learn 1 forward 1 flood 1 uu-flood 1 arp-term 0
+
+set int l2 bridge loop0 12 bvi
+set int l2 bridge ipip0 12 1
+
+set int state ipip0 up
+
+ip route add 172.16.55.0/24 via 172.16.54.104
+
+################################################ 2 ################################################
+
+loopback create mac 00:11:22:33:44:22
+
+set int state loop0 up
+set int ip address loop0 11.11.11.11/31
+
+set interface state GigabitEthernet0/3/0 up
+set interface ip address GigabitEthernet0/3/0 172.16.55.129/24
+
+ipsec sa add 10 spi 1000 esp crypto-key 4a506a794f574265564551694d653768 crypto-alg aes-cbc-128 integ-key 4a506a794f574265564551694d653768 integ-alg sha1-96
+ipsec sa add 20 spi 1001 esp crypto-key 4a506a794f574265564551694d653768 crypto-alg aes-cbc-128 integ-key 4a506a794f574265564551694d653768 integ-alg sha1-96 
+
+create ipsec tunnel local-ip 172.16.55.129 local-spi 20 remote-ip 172.16.54.129 remote-spi 10
+
+create bridge-domain 12 learn 1 forward 1 flood 1 uu-flood 1 arp-term 0
+
+set int l2 bridge loop0 12 bvi
+set int l2 bridge ipip0 12 1
+
+
+
+ip route add 172.16.54.0/24 via 172.16.55.104
+
+

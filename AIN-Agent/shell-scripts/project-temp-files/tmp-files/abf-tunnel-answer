@@ -1,0 +1,153 @@
+middle machine:
+
+frr-middle@frrmiddle:~$ sudo ip addr add 5.5.5.5/32 dev lo
+frr-middle@frrmiddle:~$ sudo sysctl net.ipv4.ip_forward=1
+frr-middle@frrmiddle:~$
+frr-middle@frrmiddle:~$ sudo ip route add 10.10.10.0/24 via 172.16.54.106
+frr-middle@frrmiddle:~$ 
+
+
+
+
+# machine 1
+vf1@vf1srv:~$ sudo systemctl stop frr
+vf1@vf1srv:~$ sudo modprobe igb_uio
+vf1@vf1srv:~$ sudo ip link set enp0s3 down
+vf1@vf1srv:~$ sudo ip link add name vpphost type veth peer name vppout
+[sudo] password for vf1: 
+vf1@vf1srv:~$ sudo ip link set vpphost up
+vf1@vf1srv:~$ sudo ip link set vppout up
+vf1@vf1srv:~$ sudo ip addr add 10.10.10.10/24 dev vpphost
+vf1@vf1srv:~$ sudo systemctl restart vpp
+vf1@vf1srv:~$ sudo ip route add 5.5.5.5/32 via 10.10.10.1
+vf1@vf1srv:~$ sudo ip route add 10.10.11.0/24 via 10.10.10.1
+vf1@vf1srv:~$ ping 10.10.11.1
+PING 10.10.11.1 (10.10.11.1) 56(84) bytes of data.
+64 bytes from 10.10.11.1: icmp_seq=1 ttl=63 time=0.813 ms
+64 bytes from 10.10.11.1: icmp_seq=2 ttl=63 time=0.579 ms
+64 bytes from 10.10.11.1: icmp_seq=3 ttl=63 time=0.612 ms
+^C
+--- 10.10.11.1 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2052ms
+rtt min/avg/max/mdev = 0.579/0.668/0.813/0.103 ms
+vf1@vf1srv:~$ ping 5.5.5.5
+PING 5.5.5.5 (5.5.5.5) 56(84) bytes of data.
+^C
+--- 5.5.5.5 ping statistics ---
+11 packets transmitted, 0 received, 100% packet loss, time 10237ms
+
+vf1@vf1srv:~$ ping 5.5.5.5
+PING 5.5.5.5 (5.5.5.5) 56(84) bytes of data.
+64 bytes from 5.5.5.5: icmp_seq=1 ttl=63 time=0.359 ms
+64 bytes from 5.5.5.5: icmp_seq=2 ttl=63 time=0.313 ms
+64 bytes from 5.5.5.5: icmp_seq=3 ttl=63 time=0.306 ms
+64 bytes from 5.5.5.5: icmp_seq=4 ttl=63 time=0.383 ms
+^C
+--- 5.5.5.5 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3084ms
+rtt min/avg/max/mdev = 0.306/0.340/0.383/0.032 ms
+vf1@vf1srv:~$ 
+
+
+
+
+vf1@vf1srv:~$ sudo vppctl 
+
+vpp# create host-interface name vppout
+host-vppout
+vpp# set int state host-vppout up
+vpp# set int ip addr host-vppout 10.10.10.1/24
+vpp# set int state GigabitEthernet0/3/0 up
+vpp# set int ip addr GigabitEthernet0/3/0 172.16.54.106/24
+vpp# loopback create mac 00:11:22:33:44:11
+loop0
+vpp# set int state loop0 up
+vpp# set int ip addr loop0 10.100.0.7/24
+vpp# set int ip addr del loop0 10.100.0.7/24
+vpp# set int ip addr loop0 10.100.0.6/24    
+vpp# create bridge-domain 12 learn 1 forward 1 uu-flood 1 flood 1 arp-term 0
+bridge-domain 12
+vpp# create gre tunnel src 172.16.54.106 dst 172.16.55.106 teb
+gre0
+vpp# set int state gre0 up
+vpp# set int l2 bridge loop0 12 bvi
+vpp# set int l2 bridge gre0 12 1
+vpp# ip route add 172.16.55.0/24 via 172.16.54.107        
+vpp# ping 10.100.0.7
+116 bytes from 10.100.0.7: icmp_seq=2 ttl=64 time=.6323 ms
+116 bytes from 10.100.0.7: icmp_seq=3 ttl=64 time=.5592 ms
+116 bytes from 10.100.0.7: icmp_seq=4 ttl=64 time=.6194 ms
+116 bytes from 10.100.0.7: icmp_seq=5 ttl=64 time=.5707 ms
+
+Statistics: 5 sent, 4 received, 20% packet loss
+vpp# set acl-plugin acl permit dst 5.5.5.5/32
+ACL index:0
+vpp# set acl-plugin acl permit dst 10.10.11.0/24
+ACL index:1
+vpp# abf policy add id 0 acl 0 via 172.16.54.107 GigabitEthernet0/3/0
+vpp# abf policy add id 1 acl 1 via 10.100.0.7 loop0                  
+vpp# abf attach ip4 policy 0 priority 10 host-vppout
+vpp# abf attach ip4 policy 1 priority 11 host-vppout
+vpp# 
+
+
+
+
+
+# machine 2
+
+
+vf2@vf2srv:~$ sudo modprobe igb_uio 
+vf2@vf2srv:~$ sudo ip link set enp0s3 down
+vf2@vf2srv:~$ sudo ip link add name vpphost type veth peer name vppout
+vf2@vf2srv:~$ sudo ip link set vpphost up
+vf2@vf2srv:~$ sudo ip link set vppout up
+vf2@vf2srv:~$ sudo ip addr add 10.10.11.11/24 dev vpphost
+vf2@vf2srv:~$ sudo systemctl restart vpp
+vf2@vf2srv:~$ sudo ip route add 10.10.10.0/24 via 10.10.11.1
+vf2@vf2srv:~$ 
+
+
+
+
+vf2@vf2srv:~$ sudo vppctl 
+    _______    _        _   _____  ___ 
+ __/ __/ _ \  (_)__    | | / / _ \/ _ \
+ _/ _// // / / / _ \   | |/ / ___/ ___/
+ /_/ /____(_)_/\___/   |___/_/  /_/    
+
+vpp# create host-interface name vppout
+host-vppout
+vpp# set int state host-vppout up
+vpp# set int ip addr host-vppout 10.10.11.1/24
+vpp# set int state GigabitEthernet0/3/0 up
+vpp# set int ip addr GigabitEthernet0/3/0 172.16.55.106/24
+vpp# loopback create mac 00:11:22:33:44:22
+loop0
+vpp# set int state loop0 up
+vpp# set int ip addr loop0 10.100.0.7/24
+vpp# create bridge-domain 12 learn 1 forward 1 uu-flood 1 flood 1 arp-term 0
+bridge-domain 12
+vpp# create gre tunnel src 172.16.55.106 dst 172.16.54.106 teb
+gre0
+vpp# set int state gre0 up
+vpp# set int l2 bridge loop0 12 bvi
+vpp# set int l2 bridge gre0 12 1
+vpp# ip route add 172.16.54.0/24 via 172.16.55.105
+vpp# ip route add 10.10.10.0/24 via 10.100.0.6 # no need to use abf at both sides
+vpp# 
+vpp# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

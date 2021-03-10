@@ -1,0 +1,9 @@
+steps:
+- installing vpp and vppsb(router and netlink)
+	this will handle creation of tap interfaces on system
+
+- tunnel creation and etc
+
+- installig and configuring FRR, this will handle routing auto
+
+- done! :)

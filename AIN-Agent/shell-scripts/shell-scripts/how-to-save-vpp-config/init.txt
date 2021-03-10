@@ -1,0 +1,7 @@
+loopback create
+
+set int state loop0 up
+set int ip addr loop0 10.10.10.1/24
+
+
+

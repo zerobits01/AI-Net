@@ -1,0 +1,235 @@
+# middle machine
+# route to 10.100.0.0
+# route to 10.101.0.0
+
+
+
+# machine 1
+
+  344  sudo ip link add name vpphost type veth peer name vppout
+  345  sudo ip link set vppout up
+  346  sudo ip link set vpphost up
+  347  sudo ip addr add 10.100.0.7/24 dev vpphost
+  348  sudo systemctl restart vpp.service 
+  349  sudo vppctl 
+  395  sudo ip route add 0.0.0.0/0 via 10.100.0.6
+
+
+vf1@vf1srv:~$ sudo vppctl 
+    _______    _        _   _____  ___ 
+ __/ __/ _ \  (_)__    | | / / _ \/ _ \
+ _/ _// // / / / _ \   | |/ / ___/ ___/
+ /_/ /____(_)_/\___/   |___/_/  /_/    
+
+vpp# 
+vpp# create host-interface name vppout
+host-vppout
+vpp# set int state host-vppout up
+vpp# set int ip addr host-vppout 10.100.0.6/24
+vpp# 
+vpp# set int ip address GigabitEthernet0/3/0 172.16.54.106/24
+vpp# set int state GigabitEthernet0/3/0 up
+vpp# 
+vpp# ip route add 172.16.55.0/24 via 172.16.54.107
+vpp# ip route add 10.101.0.0/24 via 172.16.55.106
+vpp# 
+vpp# ping 172.16.54.107
+116 bytes from 172.16.54.107: icmp_seq=1 ttl=64 time=.2785 ms
+116 bytes from 172.16.54.107: icmp_seq=2 ttl=64 time=.1898 ms
+Aborted due to a keypress.
+
+Statistics: 2 sent, 2 received, 0% packet loss
+vpp# 
+vpp#               
+vpp# ipsec sa add 10 spi 1001 esp crypto-alg aes-cbc-128 crypto-key 4a506a794f574265564551694d653768 integ-alg sha1-96 integ-key 4339314b55523947594d6d3547666b45764e6a58
+vpp# 
+vpp# ipsec sa add 20 spi 1000 esp crypto-alg aes-cbc-128 crypto-key 4a506a794f574265564551694d653768 integ-alg sha1-96 integ-key 4339314b55523947594d6d3547666b45764e6a58
+vpp# 
+vpp# ipsec spd add 1
+vpp# 
+vpp# set interface ipsec spd GigabitEthernet0/3/0 1
+vpp# 
+vpp# ipsec policy add spd 1 priority 100 inbound action bypass protocol 50
+policy-index:0
+vpp# ipsec policy add spd 1 priority 100 outbound action bypass protocol 50
+policy-index:1
+vpp# 
+vpp# ipsec policy add spd 1 priority 10 inbound action protect sa 20 local-ip-range 10.100.0.1 - 10.100.0.10 remote-ip-range 10.101.0.6 - 10.101.0.6
+policy-index:2
+vpp# 
+vpp# ipsec policy add spd 1 priority 10 outbound action protect sa 10 local-ip-range 10.100.0.1 - 10.100.0.10 remote-ip-range 10.101.0.6 - 10.101.0.6
+policy-index:3
+vpp# 
+vpp# 
+
+
+
+# machine 2
+
+vf2@vf2srv:~$ sudo vppctl 
+    _______    _        _   _____  ___ 
+ __/ __/ _ \  (_)__    | | / / _ \/ _ \
+ _/ _// // / / / _ \   | |/ / ___/ ___/
+ /_/ /____(_)_/\___/   |___/_/  /_/    
+
+vpp# 
+vpp# 
+vpp# loopback create mac 00:11:22:33:44:22
+loop0
+vpp# set int state loop0 up             
+vpp# set int ip addr loop0 10.101.0.6/24
+vpp# 
+vpp# 
+vpp# 
+vpp# set int ip address GigabitEthernet0/3/0 172.16.55.106/24
+vpp# set int state GigabitEthernet0/3/0 up
+vpp# 
+vpp# ip route add 172.16.54.0/24 via 172.16.55.105
+vpp# 
+vpp# ip route add 10.100.0.0/24 via 172.16.54.106
+vpp# 
+vpp# 
+vpp# ipsec sa add 10 spi 1001 esp crypto-alg aes-cbc-128 crypto-key 4a506a794f574265564551694d653768 integ-alg sha1-96 integ-key 4339314b55523947594d6d3547666b45764e6a58
+vpp# 
+vpp# ipsec sa add 20 spi 1000 esp crypto-alg aes-cbc-128 crypto-key 4a506a794f574265564551694d653768 integ-alg sha1-96 integ-key 4339314b55523947594d6d3547666b45764e6a58
+vpp# 
+vpp# ipsec spd add 1
+vpp# 
+vpp# set interface ipsec spd GigabitEthernet0/3/0 1
+vpp# 
+vpp# ipsec policy add spd 1 priority 100 inbound action bypass protocol 50
+policy-index:0
+vpp# ipsec policy add spd 1 priority 100 outbound action bypass protocol 50
+policy-index:1
+vpp# ipsec policy add spd 1 priority 10 inbound action protect sa 10 local-ip-range 10.101.0.6 - 10.101.0.6 remote-ip-range 10.100.0.1 - 10.100.0.10
+policy-index:2
+vpp# ipsec policy add spd 1 priority 10 outbound action protect sa 20 local-ip-range 10.101.0.6 - 10.101.0.6 remote-ip-range 10.100.0.1 - 10.100.0.10
+policy-index:3
+vpp# 
+
+
+
+#### trace
+
+vpp# trace add dpdk-input 1
+vpp# show trace
+------------------- Start of thread 0 vpp_main -------------------
+Packet 1
+
+00:20:38:861367: dpdk-input
+  GigabitEthernet0/3/0 rx queue 0
+  buffer 0x9b1fb: current data 0, length 150, buffer-pool 0, ref-count 1, totlen-nifb 0, trace handle 0x0
+                  ext-hdr-valid 
+                  l4-cksum-computed l4-cksum-correct 
+  PKT MBUF: port 0, nb_segs 1, pkt_len 150
+    buf_len 2176, data_len 150, ol_flags 0x0, data_off 128, phys_addr 0x742c7f40
+    packet_type 0x0 l2_len 0 l3_len 0 outer_l2_len 0 outer_l3_len 0
+    rss 0x0 fdir.hi 0x0 fdir.lo 0x0
+  IP4: 08:00:27:9a:90:20 -> 08:00:27:c5:1e:d6
+  IPSEC_ESP: 10.100.0.7 -> 10.101.0.6
+    tos 0x00, ttl 62, length 136, checksum 0x66c8 dscp CS0 ecn NON_ECN
+    fragment id 0xc0a6, flags DONT_FRAGMENT
+00:20:38:861402: ethernet-input
+  frame: flags 0x3, hw-if-index 1, sw-if-index 1
+  IP4: 08:00:27:9a:90:20 -> 08:00:27:c5:1e:d6
+00:20:38:861408: ip4-input-no-checksum
+  IPSEC_ESP: 10.100.0.7 -> 10.101.0.6
+    tos 0x00, ttl 62, length 136, checksum 0x66c8 dscp CS0 ecn NON_ECN
+    fragment id 0xc0a6, flags DONT_FRAGMENT
+00:20:38:861412: ipsec4-input-feature
+  IPSEC_ESP: sa_id 10 spd 1 policy 2 spi 1001 (0x000003e9) seq 
+15
+00:20:38:861413: esp4-decrypt
+  esp: crypto aes-cbc-128 integrity sha1-96 pkt-seq 15 sa-seq 0
+ sa-seq-hi 0
+00:20:38:861423: ip4-input-no-checksum
+  ICMP: 10.100.0.7 -> 10.101.0.6
+    tos 0x00, ttl 62, length 84, checksum 0x672d dscp CS0 ecn N
+ON_ECN
+    fragment id 0xc0a6, flags DONT_FRAGMENT
+  ICMP echo_request checksum 0x1311 id 19
+00:20:38:861423: ip4-lookup
+  fib 0 dpo-idx 7 flow hash: 0x00000000
+  ICMP: 10.100.0.7 -> 10.101.0.6
+    tos 0x00, ttl 62, length 84, checksum 0x672d dscp CS0 ecn N
+ON_ECN
+    fragment id 0xc0a6, flags DONT_FRAGMENT
+  ICMP echo_request checksum 0x1311 id 19
+00:20:38:861426: ip4-local
+    ICMP: 10.100.0.7 -> 10.101.0.6
+      tos 0x00, ttl 62, length 84, checksum 0x672d dscp CS0 ecn
+ NON_ECN
+      fragment id 0xc0a6, flags DONT_FRAGMENT
+    ICMP echo_request checksum 0x1311 id 19
+00:20:38:861437: ip4-icmp-input
+  ICMP: 10.100.0.7 -> 10.101.0.6
+    tos 0x00, ttl 62, length 84, checksum 0x672d dscp CS0 ecn N
+ON_ECN
+    fragment id 0xc0a6, flags DONT_FRAGMENT
+  ICMP echo_request checksum 0x1311 id 19
+00:20:38:861437: ip4-icmp-echo-request
+  ICMP: 10.100.0.7 -> 10.101.0.6
+    tos 0x00, ttl 62, length 84, checksum 0x672d dscp CS0 ecn N
+ON_ECN
+    fragment id 0xc0a6, flags DONT_FRAGMENT
+  ICMP echo_request checksum 0x1311 id 19
+00:20:38:861441: ip4-load-balance
+  fib 0 dpo-idx 19 flow hash: 0x00000000
+  ICMP: 10.101.0.6 -> 10.100.0.7
+    tos 0x00, ttl 64, length 84, checksum 0x745b dscp CS0 ecn N
+ON_ECN
+    fragment id 0xb178, flags DONT_FRAGMENT
+  ICMP echo_reply checksum 0x1b11 id 19
+  fib 0 dpo-idx 17 flow hash: 0x00000000
+  ICMP: 10.101.0.6 -> 10.100.0.7
+    tos 0x00, ttl 64, length 84, checksum 0x745b dscp CS0 ecn N
+ON_ECN
+    fragment id 0xb178, flags DONT_FRAGMENT
+  ICMP echo_reply checksum 0x1b11 id 19
+  fib 0 dpo-idx 4 flow hash: 0x00000000
+  ICMP: 10.101.0.6 -> 10.100.0.7
+    tos 0x00, ttl 64, length 84, checksum 0x745b dscp CS0 ecn N
+ON_ECN
+    fragment id 0xb178, flags DONT_FRAGMENT
+  ICMP echo_reply checksum 0x1b11 id 19
+00:20:38:861443: ip4-rewrite
+  tx_sw_if_index 1 dpo-idx 4 : ipv4 via 172.16.55.105 GigabitEt
+hernet0/3/0: mtu:9000 next:3 0800279a9020080027c51ed60800 flow 
+hash: 0x00000000
+  00000000: 0800279a9020080027c51ed6080045000054b17840004001745
+b0a6500060a64
+  00000020: 000700001b110013000348604060000000009d4500000000000
+01011
+00:20:38:861445: ipsec4-output-feature
+  spd 1 policy 3
+00:20:38:861446: esp4-encrypt
+  esp: sa-index 1 spi 1000 (0x000003e8) seq 15 sa-seq-hi 0 cryp
+to aes-cbc-128 integrity sha1-96
+00:20:38:861450: GigabitEthernet0/3/0-output
+  GigabitEthernet0/3/0 
+  IP4: 08:00:27:c5:1e:d6 -> 08:00:27:9a:90:20
+  IPSEC_ESP: 10.101.0.6 -> 10.100.0.7
+    tos 0x00, ttl 64, length 136, checksum 0x73f6 dscp CS0 ecn 
+NON_ECN
+    fragment id 0xb178, flags DONT_FRAGMENT
+00:20:38:861451: GigabitEthernet0/3/0-tx
+  GigabitEthernet0/3/0 tx queue 0
+  buffer 0x9b1fb: current data 0, length 150, buffer-pool 0, re
+f-count 1, trace handle 0x0
+                  ext-hdr-valid 
+                  l4-cksum-computed l4-cksum-correct local ip4 
+l2-hdr-offset 0 l3-hdr-offset 38 
+  PKT MBUF: port 0, nb_segs 1, pkt_len 150
+    buf_len 2176, data_len 150, ol_flags 0x0, data_off 128, phy
+s_addr 0x742c7f40
+    packet_type 0x0 l2_len 0 l3_len 0 outer_l2_len 0 outer_l3_l
+en 0
+    rss 0x0 fdir.hi 0x0 fdir.lo 0x0
+  IP4: 08:00:27:c5:1e:d6 -> 08:00:27:9a:90:20
+  IPSEC_ESP: 10.101.0.6 -> 10.100.0.7
+    tos 0x00, ttl 64, length 136, checksum 0x73f6 dscp CS0 ecn 
+NON_ECN
+    fragment id 0xb178, flags DONT_FRAGMENT
+
+
+

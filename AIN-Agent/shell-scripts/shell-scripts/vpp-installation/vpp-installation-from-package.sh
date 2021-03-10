@@ -25,8 +25,9 @@ echo "installing curl"
 echo "############################"
 echo 
 
-apt-get install curl
-
+apt-get install curl vim
+# apt-get install openconnect
+# in IRI we need vpn for installation
 
 echo "############################"
 echo "adding fdio repo"
@@ -47,6 +48,7 @@ echo
 
 wget http://archive.ubuntu.com/ubuntu/pool/universe/m/mbedtls/libmbedcrypto1_2.8.0-1_amd64.deb
 wget http://archive.ubuntu.com/ubuntu/pool/universe/m/mbedtls/libmbedtls10_2.8.0-1_amd64.deb
+wget http://archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-libc-dev_5.4.0-26.30_amd64.deb
 
 apt-get install ./*.deb
 
@@ -55,7 +57,7 @@ echo "installing main packages"
 echo "############################"
 echo 
 
-apt-get install vpp vpp-plugin-core vpp-plugin-dpdk
+apt-get install vpp vpp-plugin-core vpp-plugin-dpdk vpp-ext-deps
 
 
 echo "############################"
@@ -71,6 +73,7 @@ echo "############################"
 echo "installing igb_uio module for pci connections"
 echo "############################"
 echo 
+
 
 apt-get install dpdk-igb-uio-dkms
 

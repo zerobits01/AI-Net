@@ -1,0 +1,262 @@
+answer:
+
+zbits01@edge1:~$ sudo systemctl restart vpp
+zbits01@edge1:~$ sudo vppctl 
+    _______    _        _   _____  ___ 
+ __/ __/ _ \  (_)__    | | / / _ \/ _ \
+ _/ _// // / / / _ \   | |/ / ___/ ___/
+ /_/ /____(_)_/\___/   |___/_/  /_/    
+
+vpp# set int state GigabitEthernet4/0/0 up
+vpp# set int ip addr GigabitEthernet4/0/0 10.10.11.1/24
+vpp# set int state GigabitEthernet3/0/0 up
+vpp# set int ip addr GigabitEthernet3/0/0 10.10.110.1/24
+vpp# 
+vpp# set int mtu 1360 GigabitEthernet4/0/0
+vpp# set int l2 learn GigabitEthernet4/0/0 disable
+vpp# 
+vpp# create bridge-domain 12 learn 0 forward 1 flood 1 uu-flood1 arp-term 1 
+bridge-domain 12
+vpp# set bridge-domain arp entry 12 10.10.11.1 00:10:f3:5b:e9:a6
+vpp# create gre tunnel src 10.10.110.1 dst 10.10.110.2 teb
+gre0
+vpp# set int state gre0 up
+vpp# set int l2 bridge GigabitEthernet4/0/0 12 1
+vpp# set int l2 bridge gre0 12 2
+vpp# 
+vpp# ping 10.10.11.2
+
+Statistics: 5 sent, 0 received, 100% packet loss
+vpp# ping 10.10.11.50
+
+Statistics: 5 sent, 0 received, 100% packet loss
+vpp# trace add dpdk-input 2
+vpp# show trace
+------------------- Start of thread 0 vpp_main -------------------
+Packet 1
+
+00:06:42:788408: dpdk-input
+  GigabitEthernet3/0/0 rx queue 0
+  buffer 0x91c0b: current data 0, length 98, buffer-pool 0, ref-count 1, totlen-nifb 0, trace handle 0x0
+                  ext-hdr-valid 
+                  l4-cksum-computed l4-cksum-correct 
+  PKT MBUF: port 0, nb_segs 1, pkt_len 98
+    buf_len 2176, data_len 98, ol_flags 0x0, data_off 128, phys_addr 0x6d070340
+    packet_type 0x0 l2_len 0 l3_len 0 outer_l2_len 0 outer_l3_len 0
+    rss 0x0 fdir.hi 0x0 fdir.lo 0x0
+  IP4: 00:10:f3:25:38:c1 -> 00:10:f3:5b:e9:a5
+  GRE: 10.10.110.2 -> 10.10.110.1
+    tos 0x00, ttl 253, length 84, checksum 0xcd63 dscp CS0 ecn NON_ECN
+    fragment id 0x0000
+  GRE teb
+00:06:42:788414: ethernet-input
+  frame: flags 0x3, hw-if-index 1, sw-if-index 1
+  IP4: 00:10:f3:25:38:c1 -> 00:10:f3:5b:e9:a5
+00:06:42:788419: ip4-input-no-checksum
+  GRE: 10.10.110.2 -> 10.10.110.1
+    tos 0x00, ttl 253, length 84, checksum 0xcd63 dscp CS0 ecn NON_ECN
+    fragment id 0x0000
+  GRE teb
+00:06:42:788422: ip4-lookup
+  fib 0 dpo-idx 8 flow hash: 0x00000000
+  GRE: 10.10.110.2 -> 10.10.110.1
+    tos 0x00, ttl 253, length 84, checksum 0xcd63 dscp CS0 ecn NON_ECN
+    fragment id 0x0000
+  GRE teb
+00:06:42:788423: ip4-local
+    GRE: 10.10.110.2 -> 10.10.110.1
+      tos 0x00, ttl 253, length 84, checksum 0xcd63 dscp CS0 ecn NON_ECN
+      fragment id 0x0000
+    GRE teb
+00:06:42:788424: gre4-input
+  GRE: tunnel 8 len 84 src 10.10.110.2 dst 10.10.110.1
+00:06:42:788425: ethernet-input
+  ARP: 98:28:a6:48:a2:0a -> ff:ff:ff:ff:ff:ff
+00:06:42:788426: l2-input
+  l2-input: sw_if_index 8 dst ff:ff:ff:ff:ff:ff src 98:28:a6:48:a2:0a [arp-term-l2bd l2-flood ]
+00:06:42:788426: l2-flood
+  l2-flood: sw_if_index 8 dst ff:ff:ff:ff:ff:ff src 98:28:a6:48:a2:0a bd_index 1
+00:06:42:788427: l2-output
+  l2-output: sw_if_index 2 dst ff:ff:ff:ff:ff:ff src 98:28:a6:48:a2:0a data 08 06 00 01 08 00 06 04 00 01 98 28
+00:06:42:788427: GigabitEthernet4/0/0-output
+  GigabitEthernet4/0/0 
+  ARP: 98:28:a6:48:a2:0a -> ff:ff:ff:ff:ff:ff
+  request, type ethernet/IP4, address size 6/4
+  98:28:a6:48:a2:0a/10.10.11.50 -> 00:00:00:00:00:00/10.10.11.51
+00:06:42:788428: error-drop
+  rx:gre0
+00:06:42:788428: drop
+  GigabitEthernet4/0/0-output: interface is down
+
+Packet 2
+
+00:06:43:812357: dpdk-input
+  GigabitEthernet3/0/0 rx queue 0
+  buffer 0x91be4: current data 0, length 98, buffer-pool 0, ref-count 1, totlen-nifb 0, trace handle 
+0x1
+                  ext-hdr-valid 
+                  l4-cksum-computed l4-cksum-correct 
+  PKT MBUF: port 0, nb_segs 1, pkt_len 98
+    buf_len 2176, data_len 98, ol_flags 0x0, data_off 128, phys_addr 0x6d06f980
+    packet_type 0x0 l2_len 0 l3_len 0 outer_l2_len 0 outer_l3_len 0
+    rss 0x0 fdir.hi 0x0 fdir.lo 0x0
+  IP4: 00:10:f3:25:38:c1 -> 00:10:f3:5b:e9:a5
+  GRE: 10.10.110.2 -> 10.10.110.1
+    tos 0x00, ttl 253, length 84, checksum 0xcd63 dscp CS0 ecn NON_ECN
+    fragment id 0x0000
+  GRE teb
+00:06:43:812360: ethernet-input
+  frame: flags 0x3, hw-if-index 1, sw-if-index 1
+  IP4: 00:10:f3:25:38:c1 -> 00:10:f3:5b:e9:a5
+00:06:43:812361: ip4-input-no-checksum
+  GRE: 10.10.110.2 -> 10.10.110.1
+    tos 0x00, ttl 253, length 84, checksum 0xcd63 dscp CS0 ecn NON_ECN
+    fragment id 0x0000
+  GRE teb
+00:06:43:812362: ip4-lookup
+  fib 0 dpo-idx 8 flow hash: 0x00000000
+  GRE: 10.10.110.2 -> 10.10.110.1
+    tos 0x00, ttl 253, length 84, checksum 0xcd63 dscp CS0 ecn NON_ECN
+    fragment id 0x0000
+  GRE teb
+00:06:43:812362: ip4-local
+    GRE: 10.10.110.2 -> 10.10.110.1
+      tos 0x00, ttl 253, length 84, checksum 0xcd63 dscp CS0 ecn NON_ECN
+      fragment id 0x0000
+    GRE teb
+00:06:43:812363: gre4-input
+  GRE: tunnel 8 len 84 src 10.10.110.2 dst 10.10.110.1
+00:06:43:812364: ethernet-input
+  ARP: 98:28:a6:48:a2:0a -> ff:ff:ff:ff:ff:ff
+00:06:43:812368: l2-input
+  l2-input: sw_if_index 8 dst ff:ff:ff:ff:ff:ff src 98:28:a6:48:a2:0a [arp-term-l2bd l2-flood ]
+00:06:43:812368: l2-flood
+  l2-flood: sw_if_index 8 dst ff:ff:ff:ff:ff:ff src 98:28:a6:48:a2:0a bd_index 1
+00:06:43:812369: l2-output
+  l2-output: sw_if_index 2 dst ff:ff:ff:ff:ff:ff src 98:28:a6:48:a2:0a data 08 06 00 01 08 00 06 04 0
+0 01 98 28
+00:06:43:812369: GigabitEthernet4/0/0-output
+  GigabitEthernet4/0/0 
+  ARP: 98:28:a6:48:a2:0a -> ff:ff:ff:ff:ff:ff
+  request, type ethernet/IP4, address size 6/4
+  98:28:a6:48:a2:0a/10.10.11.50 -> 00:00:00:00:00:00/10.10.11.51
+00:06:43:812369: error-drop
+  rx:gre0
+00:06:43:812370: drop
+  GigabitEthernet4/0/0-output: interface is down
+
+vpp# 
+vpp# 
+vpp# 
+vpp# 
+vpp# 
+vpp# 
+vpp# 
+vpp# 
+vpp# 
+vpp# 
+vpp# 
+
+
+
+
+
+zbits01@edge2:~$ sudo systemctl restart vpp
+zbits01@edge2:~$ sudo vppctl 
+clib_socket_init: connect (fd 3, '/run/vpp/cli.sock'): Connection refused
+zbits01@edge2:~$ sudo vppctl 
+    _______    _        _   _____  ___ 
+ __/ __/ _ \  (_)__    | | / / _ \/ _ \
+ _/ _// // / / / _ \   | |/ / ___/ ___/
+ /_/ /____(_)_/\___/   |___/_/  /_/    
+
+vpp# set int state GigabitEthernet6/0/0 up
+vpp# set int ip addr GigabitEthernet6/0/0 10.10.11.2/24
+vpp# set int state GigabitEthernet5/0/0 up
+vpp# set int ip addr GigabitEthernet5/0/0 10.10.110.2/24
+vpp# 
+vpp# loopback create mac 00:11:22:33:44:33
+loop0
+vpp# 
+vpp# set int mtu 1360 GigabitEthernet6/0/0
+vpp# set int l2 learn GigabitEthernet6/0/0 disable
+vpp# 
+vpp# 
+vpp# create bridge-domain 12 learn 0 flood 1 uu-flood 1 forward 1 arp-term 1
+bridge-domain 12
+vpp# set bridge-domain arp entry 12 10.10.11.2 00:10:f3:25:38:c2
+vpp# create gre tunnel src 10.10.110.2 dst 10.10.110.1 teb
+gre0
+vpp# set int state gre0 up
+vpp# set int l2 bridge GigabitEthernet6/0/0 12 1
+vpp# set int l2 bridge gre0 12 2
+vpp# 
+vpp# trace add dpdk-input 1
+vpp# show trace                           
+------------------- Start of thread 0 vpp_main -------------------
+Packet 1
+
+00:01:51:948578: dpdk-input
+  GigabitEthernet6/0/0 rx queue 0
+  buffer 0x9ffad: current data 0, length 60, buffer-pool 0, ref-count 1, totlen-nifb 0, trace handle 0x0
+                  ext-hdr-valid 
+                  l4-cksum-computed l4-cksum-correct 
+  PKT MBUF: port 1, nb_segs 1, pkt_len 60
+    buf_len 2176, data_len 60, ol_flags 0x0, data_off 128, phys_addr 0x83bfebc0
+    packet_type 0x0 l2_len 0 l3_len 0 outer_l2_len 0 outer_l3_len 0
+    rss 0x0 fdir.hi 0x0 fdir.lo 0x0
+  ARP: 98:28:a6:48:a2:0a -> ff:ff:ff:ff:ff:ff
+  request, type ethernet/IP4, address size 6/4
+  98:28:a6:48:a2:0a/10.10.11.50 -> 00:00:00:00:00:00/10.10.11.2
+00:01:51:948583: ethernet-input
+  frame: flags 0x3, hw-if-index 2, sw-if-index 2
+  ARP: 98:28:a6:48:a2:0a -> ff:ff:ff:ff:ff:ff
+00:01:51:948585: l2-input
+  l2-input: sw_if_index 2 dst ff:ff:ff:ff:ff:ff src 98:28:a6:48:a2:0a
+00:01:51:948586: l2-flood
+  l2-flood: sw_if_index 2 dst ff:ff:ff:ff:ff:ff src 98:28:a6:48:a2:0a bd_index 1
+00:01:51:948587: l2-output
+  l2-output: sw_if_index 9 dst ff:ff:ff:ff:ff:ff src 98:28:a6:48:a2:0a data 08 06 00 01 08 00 06 04 00 01 98 28
+00:01:51:948587: gre-teb-encap
+  GRE: tunnel 0 len 60 src 10.10.110.2 dst 10.10.110.1
+00:01:51:948588: adj-l2-midchain
+  adj-idx 2 : ethernet via 0.0.0.0 gre0: mtu:9000 next:1 4500000000000000fe2fccb70a0a6e020a0a6e0100006558
+  stacked-on entry:15:
+    [@3]: ipv4 via 10.10.110.1 GigabitEthernet5/0/0: mtu:9000 next:3 0010f35be9a50010f32538c10800
+00:01:51:948588: adj-midchain-tx-no-count
+  adj-midchain:[2]:ethernet via 0.0.0.0 gre0: mtu:9000 next:1 4500000000000000fe2fccb70a0a6e020a0a6e0100006558
+  stacked-on entry:15:
+    [@3]: ipv4 via 10.10.110.1 GigabitEthernet5/0/0: mtu:9000 next:3 0010f35be9a50010f32538c10800
+00:01:51:948588: ip4-rewrite
+  tx_sw_if_index 1 dpo-idx 3 : ipv4 via 10.10.110.1 GigabitEthernet5/0/0: mtu:9000 next:3 0010f35be9a50010f32538c10800 flow hash: 0x0000010e
+  00000000: 0010f35be9a50010f32538c108004500005400000000fd2fcd630a0a6e020a0a
+  00000020: 6e0100006558ffffffffffff9828a648a20a08060001080006040001
+00:01:51:948589: GigabitEthernet5/0/0-output
+  GigabitEthernet5/0/0 
+  IP4: 00:10:f3:25:38:c1 -> 00:10:f3:5b:e9:a5
+  GRE: 10.10.110.2 -> 10.10.110.1
+    tos 0x00, ttl 253, length 84, checksum 0xcd63 dscp CS0 ecn NON_ECN
+    fragment id 0x0000
+  GRE teb
+00:01:51:948590: GigabitEthernet5/0/0-tx
+  GigabitEthernet5/0/0 tx queue 0
+  buffer 0x9ffad: current data -38, length 98, buffer-pool 0, ref-count 1, totlen-nifb 0, trace handle 0x0
+                  ext-hdr-valid 
+                  l4-cksum-computed l4-cksum-correct l2-hdr-offset 0 l3-hdr-offset 14 
+  PKT MBUF: port 1, nb_segs 1, pkt_len 98
+    buf_len 2176, data_len 98, ol_flags 0x0, data_off 90, phys_addr 0x83bfebc0
+    packet_type 0x0 l2_len 0 l3_len 0 outer_l2_len 0 outer_l3_len 0
+    rss 0x0 fdir.hi 0x0 fdir.lo 0x0
+  IP4: 00:10:f3:25:38:c1 -> 00:10:f3:5b:e9:a5
+  GRE: 10.10.110.2 -> 10.10.110.1
+    tos 0x00, ttl 253, length 84, checksum 0xcd63 dscp CS0 ecn NON_ECN
+    fragment id 0x0000
+  GRE teb
+
+vpp# 
+vpp# 
+vpp# 
+vpp# 
+vpp# 
+
+

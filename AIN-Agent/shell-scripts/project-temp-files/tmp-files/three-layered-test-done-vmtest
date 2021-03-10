@@ -1,0 +1,79 @@
+# machine1
+# setting mtu before
+
+
+set int state GigabitEthernet0/3/0 up
+set int ip addr GigabitEthernet0/3/0 172.16.54.128/24
+
+loopback create mac 00:11:22:33:44:11
+set int state loop0 up
+set int ip addr loop0 10.100.0.6/24
+set int mtu 1360 loop0
+set int l2 learn loop0 disable
+
+create bridge-domain 12 learn 0 forward 1 flood 1 uu-flood1 arp-term 1 
+set bridge-domain arp entry 12 10.100.0.6 00:11:22:33:44:11
+create gre tunnel src 10.101.0.6 dst 10.101.0.7 teb
+set int state gre0 up
+set int l2 bridge loop0 12 bvi
+set int l2 bridge gre0 12 1
+
+loopback create mac 00:11:22:33:44:22
+set int state loop1 up 
+set int ip addr loop1 10.101.0.6/24 
+set int l2 learn loop1 disable
+create bridge-domain 13 learn 0 flood 1 uu-flood 1 forward 1 arp-term 1
+set bridge-domain arp entry 13 10.101.0.6 00:11:22:33:44:22
+create vxlan tunnel src 172.16.54.128 dst 172.16.55.128 vni 13
+set int state vxlan_tunnel0 up
+set int l2 bridge loop1 13 bvi
+set int l2 bridge vxlan_tunnel0 13 1
+
+ipsec sa add 10 spi 1000 esp crypto-key 4a506a794f574265564551694d653768 crypto-alg aes-cbc-128 integ-key 4a506a794f574265564551694d653768 integ-alg sha1-96
+
+ipsec sa add 20 spi 1001 esp crypto-key 4a506a794f574265564551694d653768 crypto-alg aes-cbc-128 integ-key 4a506a794f574265564551694d653768 integ-alg sha1-96
+
+ipsec tunnel protect gre0 sa-in 10 sa-out 20
+
+ ip route add 172.16.55.0/24 via 172.16.54.104
+
+# machine2
+
+
+set int state GigabitEthernet0/3/0 up
+set int ip addr GigabitEthernet0/3/0 172.16.55.128/24
+
+loopback create mac 00:11:22:33:44:33
+set int state loop0 up
+set int ip addr loop0 10.100.0.7/24
+set int mtu 1360 loop0
+set int l2 learn loop0 disable
+
+create bridge-domain 12 learn 0 flood 1 uu-flood 1 forward 1 arp-term 1
+set bridge-domain arp entry 12 10.100.0.7 00:11:22:33:44:33
+create gre tunnel src 10.101.0.7 dst 10.101.0.6 teb
+set int state gre0 up
+set int l2 bridge loop0 12 bvi
+set int l2 bridge gre0 12 1
+
+loopback create mac 00:11:22:33:44:44
+set int state loop1 up 
+set int ip addr loop1 10.101.0.7/24 
+set int l2 learn loop1 disable
+
+create bridge-domain 13 learn 0 flood 1 uu-flood 1 forward 1 arp-term 1
+set bridge-domain arp entry 13 10.101.0.7 00:11:22:33:44:44 
+create vxlan tunnel src 172.16.55.128 dst 172.16.54.128 vni 13
+set int state vxlan_tunnel0 up
+set int l2 bridge loop1 13 bvi
+set int l2 bridge vxlan_tunnel0 13 1
+
+ipsec sa add 10 spi 1000 esp crypto-key 4a506a794f574265564551694d653768 crypto-alg aes-cbc-128 integ-key 4a506a794f574265564551694d653768 integ-alg sha1-96
+ipsec sa add 20 spi 1001 esp crypto-key 4a506a794f574265564551694d653768 crypto-alg aes-cbc-128 integ-key 4a506a794f574265564551694d653768 integ-alg sha1-96
+ipsec tunnel protect gre0 sa-in 20 sa-out 10
+
+
+ip route add 172.16.54.0/24 via 172.16.55.104
+ 
+ 
+
